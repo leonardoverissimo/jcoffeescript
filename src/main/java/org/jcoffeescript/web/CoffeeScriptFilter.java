@@ -63,7 +63,9 @@ public class CoffeeScriptFilter implements Filter {
 		ServletContext servletContext = request.getSession().getServletContext();
 		
 		JCoffeeScriptCompiler compiler = (JCoffeeScriptCompiler) servletContext.getAttribute("compiler");
-		String coffeeFilename = discoverCoffeeFilename(request.getPathInfo());
+
+		String javascriptURI = getJavascriptURI(request);
+		String coffeeFilename = discoverCoffeeFilename(javascriptURI);
 		
 		Map<String, String> previousBinaries = (Map<String, String>) servletContext.getAttribute("previousBinaries");
 		
@@ -94,6 +96,14 @@ public class CoffeeScriptFilter implements Filter {
 		resp.setContentType("text/javascript");
 		PrintWriter writer = resp.getWriter();
 		writer.write(binary);
+	}
+	
+	private String getJavascriptURI(HttpServletRequest request) {
+		String javascriptURI = request.getServletPath();
+		if (request.getPathInfo() != null) {
+			javascriptURI += request.getPathInfo();
+		}
+		return javascriptURI;
 	}
 
 	private String discoverCoffeeFilename(String javascriptResource) {

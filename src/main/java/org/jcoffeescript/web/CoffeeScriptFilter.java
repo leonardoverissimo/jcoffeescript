@@ -33,8 +33,6 @@ public class CoffeeScriptFilter implements Filter {
 	
 	@Override
 	public void destroy() {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
@@ -65,7 +63,7 @@ public class CoffeeScriptFilter implements Filter {
 			writer.write(binary);
 			
 		} catch (JCoffeeScriptCompileException e) {
-			e.printStackTrace();
+			throw new ServletException("Compilation error on file: " + coffeeFilename + " " + e.getMessage(), e);
 		}
 	}
 

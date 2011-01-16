@@ -45,7 +45,7 @@ public class CoffeeScriptWebFilterTest {
 		context.addFilter(CoffeeScriptFilter.class, "*.js", FilterMapping.DEFAULT);
 		context.addServlet(DefaultServlet.class, "/*");
 		context.setResourceBase("target/classes/unit-tests/app");
-		
+        
         server.setHandler(context);
         
 		server.start();
@@ -56,12 +56,15 @@ public class CoffeeScriptWebFilterTest {
 		
 		HttpClient httpClient = new HttpClient();
 		
-		GetMethod method = new GetMethod("http://localhost:9012/js/simple.js");
-		int response = httpClient.executeMethod(method);
-		
-		assertEquals(200, response);
-		assertTrue(method.getResponseBodyAsString().startsWith("(function() {\n"));
-		assertTrue(method.getResponseBodyAsString().endsWith("\n}).call(this);\n"));
+		for (int i = 0; i < 2; i++) {
+			
+			GetMethod method = new GetMethod("http://localhost:9012/js/simple.js");
+			int response = httpClient.executeMethod(method);
+			
+			assertEquals(200, response);
+			assertTrue(method.getResponseBodyAsString().startsWith("(function() {\n"));
+			assertTrue(method.getResponseBodyAsString().endsWith("\n}).call(this);\n"));
+		}
 	}
 	
 	@Test

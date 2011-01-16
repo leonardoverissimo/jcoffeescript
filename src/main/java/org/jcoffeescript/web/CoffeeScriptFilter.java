@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URL;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -38,10 +39,10 @@ public class CoffeeScriptFilter implements Filter {
 		config.getServletContext().setAttribute("compiler", compiler);
 		
 		// hashmap
-		LinkedHashMap<String, String> previousBinaries = new LinkedHashMap<String, String>() {
+		LinkedHashMap<String, Binary> previousBinaries = new LinkedHashMap<String, Binary>() {
 
 			@Override
-			protected boolean removeEldestEntry(Entry<String, String> eldest) {
+			protected boolean removeEldestEntry(Entry<String, Binary> eldest) {
 				return size() > MAX_COMPILED_JS;
 			}
 		};
@@ -63,27 +64,35 @@ public class CoffeeScriptFilter implements Filter {
 		ServletContext servletContext = request.getSession().getServletContext();
 		
 		JCoffeeScriptCompiler compiler = (JCoffeeScriptCompiler) servletContext.getAttribute("compiler");
-
+		Map<String, Binary> previousBinaries = (Map<String, Binary>) servletContext.getAttribute("previousBinaries");
+		
+		
 		String javascriptURI = getJavascriptURI(request);
 		String coffeeFilename = discoverCoffeeFilename(javascriptURI);
+		if (coffeeFilename == null) {
+			// it's not javascript
+			chain.doFilter(req, resp);
+			return;
+		}
 		
-		Map<String, String> previousBinaries = (Map<String, String>) servletContext.getAttribute("previousBinaries");
+		URL coffeeURL = servletContext.getResource(coffeeFilename);
+		if (coffeeURL == null) {
+			// static javascript or coffe filename was deleted
+			previousBinaries.remove(coffeeFilename);
+			chain.doFilter(req, resp);
+			return;
+		}
 		
-		String binary;
-		if ((binary = previousBinaries.get(coffeeFilename)) == null) {
+		Binary binary;
+		if ((binary = previousBinaries.get(coffeeFilename)) == null
+				|| binary.isOlderThan(coffeeURL)) {
 			
-			InputStream coffeeStream = servletContext.getResourceAsStream(coffeeFilename);
-			if (coffeeStream == null) {
-				// pass just to show 404 default page
-				chain.doFilter(req, resp);
-				return;
-			}
-			
+			InputStream coffeeStream = coffeeURL.openStream();
 			String source = getContent(coffeeStream);
 
 			try {
 				synchronized (compiler) {
-					binary = compiler.compile(source);
+					binary = new Binary(coffeeURL, compiler.compile(source));
 				}
 			} catch (JCoffeeScriptCompileException e) {
 				throw new ServletException("Compilation error on file: " + coffeeFilename + " " + e.getMessage(), e);
@@ -95,7 +104,7 @@ public class CoffeeScriptFilter implements Filter {
 		
 		resp.setContentType("text/javascript");
 		PrintWriter writer = resp.getWriter();
-		writer.write(binary);
+		writer.write(binary.getContent());
 	}
 	
 	private String getJavascriptURI(HttpServletRequest request) {

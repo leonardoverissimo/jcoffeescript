@@ -17,7 +17,12 @@
 package org.jcoffeescript;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -32,6 +37,8 @@ import org.junit.Test;
 
 public class CoffeeScriptWebFilterTest {
 	
+	private static final String RESOURCE_BASE = "target/classes/unit-tests/app";
+	
 	@BeforeClass
 	public static void setUp() throws Exception {
 		Server server = new Server();
@@ -44,7 +51,7 @@ public class CoffeeScriptWebFilterTest {
         context.setContextPath("/");
 		context.addFilter(CoffeeScriptFilter.class, "*.js", FilterMapping.DEFAULT);
 		context.addServlet(DefaultServlet.class, "/*");
-		context.setResourceBase("target/classes/unit-tests/app");
+		context.setResourceBase(RESOURCE_BASE);
         
         server.setHandler(context);
         
@@ -99,4 +106,39 @@ public class CoffeeScriptWebFilterTest {
 		
 		assertEquals(500, response);
 	}
+	
+	@Test
+	public void shouldCompileAgainWhenFileChanges() throws Exception {
+		
+		HttpClient httpClient = new HttpClient();
+		
+		// first request
+		GetMethod method = new GetMethod("http://localhost:9012/js/simple.js");
+		int response = httpClient.executeMethod(method);
+		assertEquals(200, response);
+		
+		String firstResponse = method.getResponseBodyAsString();
+		
+		// Change the file
+		File jsFile = new File(RESOURCE_BASE + "/WEB-INF/coffee", "simple.coffee");
+		BufferedWriter writer = new BufferedWriter(new FileWriter(jsFile, true));
+		
+		try {
+			writer.newLine();
+			writer.append("b = 2");
+			writer.newLine();
+		} finally {
+			writer.close();
+		}
+		
+		// second request
+		response = httpClient.executeMethod(method);
+		assertEquals(200, response);
+		
+		String secondResponse = method.getResponseBodyAsString();
+		
+		assertNotSame(firstResponse, secondResponse);
+	}
+	
+	
 }

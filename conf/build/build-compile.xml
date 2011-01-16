@@ -41,7 +41,7 @@
                 <available file="${basedir}/src/@{folder}/java" type="dir"/>
                 <then>
                     <mkdir dir="${basedir}/target/classes/@{folder}"/>
-                    <javac srcdir="${basedir}/src/@{folder}/java" destdir="${basedir}/target/classes/@{folder}" source="1.5" target="1.5" debug="true">
+                    <javac srcdir="${basedir}/src/@{folder}/java" destdir="${basedir}/target/classes/@{folder}" source="1.6" target="1.6" debug="true">
                         <classpath>
                             <path refid="@{classpathref}"/>
                             <pathelement location="${basedir}/target/classes/main" />

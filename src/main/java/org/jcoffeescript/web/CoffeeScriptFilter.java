@@ -27,13 +27,30 @@ import org.jcoffeescript.JCoffeeScriptCompiler;
 
 public class CoffeeScriptFilter implements Filter {
 
+	private static final String DEFAULT_JS_PREFIX = "/js";
+	private static final String DEFAULT_COFFEE_PREFIX = "/WEB-INF/coffee";
 	private static final int BUFFER_SIZE = 4096;
 	private static final int MAX_COMPILED_JS = 100;
 	
+	private String javascriptResourcePrefix;
+	private String coffeescriptFilenamePrefix;
 
 	@SuppressWarnings("serial")
 	@Override
 	public void init(FilterConfig config) throws ServletException {
+		// prefixes
+		String jsPrefix = config.getInitParameter("javascriptResourcePrefix");
+		if (jsPrefix == null || jsPrefix.equals("")) {
+			jsPrefix = DEFAULT_JS_PREFIX;
+		}
+		this.javascriptResourcePrefix = jsPrefix;
+		
+		String csPrefix = config.getInitParameter("coffeescriptFilenamePrefix");
+		if (csPrefix == null || csPrefix.equals("")) {
+			csPrefix = DEFAULT_COFFEE_PREFIX;
+		}
+		this.coffeescriptFilenamePrefix = csPrefix;
+				
 		// coffeescript compiler
 		JCoffeeScriptCompiler compiler = new JCoffeeScriptCompiler();
 		config.getServletContext().setAttribute("compiler", compiler);
@@ -117,12 +134,12 @@ public class CoffeeScriptFilter implements Filter {
 
 	private String discoverCoffeeFilename(String javascriptResource) {
 
-		Pattern pattern = Pattern.compile("/js/(.*).js");
+		Pattern pattern = Pattern.compile(javascriptResourcePrefix + "/(.*).js");
 		Matcher matcher = pattern.matcher(javascriptResource);
 		if (!matcher.matches()) {
 			return null;
 		}
-		return "/WEB-INF/coffee/" + matcher.group(1) + ".coffee";
+		return coffeescriptFilenamePrefix + "/" + matcher.group(1) + ".coffee";
 	}
 
 	private String getContent(InputStream coffeeStream) throws IOException {

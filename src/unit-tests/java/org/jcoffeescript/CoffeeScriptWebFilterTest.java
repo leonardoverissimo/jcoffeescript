@@ -29,6 +29,7 @@ import org.apache.commons.httpclient.methods.GetMethod;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.servlet.DefaultServlet;
+import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.FilterMapping;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.jcoffeescript.web.CoffeeScriptFilter;
@@ -49,7 +50,10 @@ public class CoffeeScriptWebFilterTest {
 		// setting context
 		ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
         context.setContextPath("/");
-		context.addFilter(CoffeeScriptFilter.class, "*.js", FilterMapping.DEFAULT);
+		FilterHolder filterHandler = context.addFilter(CoffeeScriptFilter.class, "*.js", FilterMapping.DEFAULT);
+		filterHandler.setInitParameter("javascriptResourcePrefix", "/javascript");
+		filterHandler.setInitParameter("coffeescriptFilenamePrefix", "/WEB-INF/coffee");
+		
 		context.addServlet(DefaultServlet.class, "/*");
 		context.setResourceBase(RESOURCE_BASE);
         
@@ -65,7 +69,7 @@ public class CoffeeScriptWebFilterTest {
 		
 		for (int i = 0; i < 2; i++) {
 			
-			GetMethod method = new GetMethod("http://localhost:9012/js/simple.js");
+			GetMethod method = new GetMethod("http://localhost:9012/javascript/simple.js");
 			int response = httpClient.executeMethod(method);
 			
 			assertEquals(200, response);
@@ -79,7 +83,7 @@ public class CoffeeScriptWebFilterTest {
 		
 		HttpClient httpClient = new HttpClient();
 		
-		GetMethod method = new GetMethod("http://localhost:9012/js/notfound.js");
+		GetMethod method = new GetMethod("http://localhost:9012/javascript/notfound.js");
 		int response = httpClient.executeMethod(method);
 		
 		assertEquals(404, response);
@@ -90,7 +94,7 @@ public class CoffeeScriptWebFilterTest {
 		
 		HttpClient httpClient = new HttpClient();
 		
-		GetMethod method = new GetMethod("http://localhost:9012/js/static.js");
+		GetMethod method = new GetMethod("http://localhost:9012/javascript/static.js");
 		int response = httpClient.executeMethod(method);
 		
 		assertEquals(200, response);
@@ -101,7 +105,7 @@ public class CoffeeScriptWebFilterTest {
 		
 		HttpClient httpClient = new HttpClient();
 		
-		GetMethod method = new GetMethod("http://localhost:9012/js/error.js");
+		GetMethod method = new GetMethod("http://localhost:9012/javascript/error.js");
 		int response = httpClient.executeMethod(method);
 		
 		assertEquals(500, response);
@@ -113,7 +117,7 @@ public class CoffeeScriptWebFilterTest {
 		HttpClient httpClient = new HttpClient();
 		
 		// first request
-		GetMethod method = new GetMethod("http://localhost:9012/js/simple.js");
+		GetMethod method = new GetMethod("http://localhost:9012/javascript/simple.js");
 		int response = httpClient.executeMethod(method);
 		assertEquals(200, response);
 		
@@ -139,6 +143,4 @@ public class CoffeeScriptWebFilterTest {
 		
 		assertNotSame(firstResponse, secondResponse);
 	}
-	
-	
 }

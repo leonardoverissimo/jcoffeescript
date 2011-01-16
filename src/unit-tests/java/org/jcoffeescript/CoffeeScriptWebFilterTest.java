@@ -24,6 +24,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 
+import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.eclipse.jetty.server.Server;
@@ -112,6 +113,25 @@ public class CoffeeScriptWebFilterTest {
 	}
 	
 	@Test
+	public void shouldReturnNotModifiedOnSecondRequest() throws Exception {
+		
+		HttpClient httpClient = new HttpClient();
+		
+		// first request
+		GetMethod method = new GetMethod("http://localhost:9012/javascript/simple.js");
+		int response = httpClient.executeMethod(method);
+		assertEquals(200, response);
+		
+		Header lastModified = method.getResponseHeader("Last-Modified");
+		
+		// second request
+		Header header = new Header("If-Modified-Since", lastModified.getValue());
+		method.setRequestHeader(header);
+		response = httpClient.executeMethod(method);
+		assertEquals(304, response);
+	}
+	
+	@Test
 	public void shouldCompileAgainWhenFileChanges() throws Exception {
 		
 		HttpClient httpClient = new HttpClient();
@@ -121,6 +141,7 @@ public class CoffeeScriptWebFilterTest {
 		int response = httpClient.executeMethod(method);
 		assertEquals(200, response);
 		
+		Header lastModified = method.getResponseHeader("Last-Modified");
 		String firstResponse = method.getResponseBodyAsString();
 		
 		// Change the file
@@ -136,6 +157,8 @@ public class CoffeeScriptWebFilterTest {
 		}
 		
 		// second request
+		Header header = new Header("If-Modified-Since", lastModified.getValue());
+		method.setRequestHeader(header);
 		response = httpClient.executeMethod(method);
 		assertEquals(200, response);
 		

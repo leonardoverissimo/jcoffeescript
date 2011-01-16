@@ -37,6 +37,10 @@ import java.net.URL;
 		return content;
 	}
 	
+	public long getLastModified() {
+		return lastModified;
+	}
+
 	private long lastModified(URL coffeeURL) {
 		File file = new File(coffeeURL.getFile());
 		// when resource is inside WAR, file doesn't exist and

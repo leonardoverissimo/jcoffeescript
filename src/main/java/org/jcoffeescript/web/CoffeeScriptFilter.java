@@ -21,6 +21,7 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.jcoffeescript.JCoffeeScriptCompileException;
 import org.jcoffeescript.JCoffeeScriptCompiler;
@@ -34,6 +35,8 @@ public class CoffeeScriptFilter implements Filter {
 	
 	private String javascriptResourcePrefix;
 	private String coffeescriptFilenamePrefix;
+	
+	private long startupTime = new java.util.Date().getTime() / 1000 * 1000;
 
 	@SuppressWarnings("serial")
 	@Override
@@ -77,7 +80,7 @@ public class CoffeeScriptFilter implements Filter {
 			throws IOException, ServletException {
 		
 		HttpServletRequest request = (HttpServletRequest) req;
-//		HttpServletResponse response = (HttpServletResponse) resp;
+		HttpServletResponse response = (HttpServletResponse) resp;
 		ServletContext servletContext = request.getSession().getServletContext();
 		
 		JCoffeeScriptCompiler compiler = (JCoffeeScriptCompiler) servletContext.getAttribute("compiler");
@@ -93,6 +96,7 @@ public class CoffeeScriptFilter implements Filter {
 		}
 		
 		URL coffeeURL = servletContext.getResource(coffeeFilename);
+		
 		if (coffeeURL == null) {
 			// static javascript or coffe filename was deleted
 			previousBinaries.remove(coffeeFilename);
@@ -119,9 +123,21 @@ public class CoffeeScriptFilter implements Filter {
 		// write in all cases to put value at the end of the linked list
 		previousBinaries.put(coffeeFilename, binary);
 		
-		resp.setContentType("text/javascript");
-		PrintWriter writer = resp.getWriter();
-		writer.write(binary.getContent());
+		// optimizing response
+		long lastModified = binary.getLastModified() == 0 ? this.startupTime : (binary.getLastModified() / 1000 * 1000);
+		long ifModifiedSince = request.getDateHeader("If-Modified-Since");
+		
+		if (lastModified > ifModifiedSince) {
+			
+			// write last modified info
+			response.setDateHeader("Last-Modified", lastModified);
+			response.setContentType("text/javascript");
+			PrintWriter writer = resp.getWriter();
+			writer.write(binary.getContent());
+		} else {
+			response.setContentLength(0);
+			response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+		}
 	}
 	
 	private String getJavascriptURI(HttpServletRequest request) {
